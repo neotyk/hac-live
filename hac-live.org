@@ -1,0 +1,109 @@
+#+TITLE: http.async.client live
+#+AUTHOR: Hubert Iwaniuk
+#+EMAIL: hubert@happyhacking.nl
+
+* Abstract
+  [[https://github.com/neotyk/http.async.client][http.async.client]] is no fancy name, but it says it all, doesn't it?
+  Primary goal is simplicity but still powerful.
+
+
+* Setup
+  For tests we will need some small server to work against.
+
+  #+begin_src clojure :export code :tangle src/hac_live/server.clj
+    (ns hac-live.server
+      (:require [noir.server :as server]
+                [noir.content.getting-started]
+                [noir.response :as response])
+      (:use [noir.core :only [defpartial defpage]]
+            [hiccup.core :only [html]]
+            [hiccup.page-helpers :only [include-css html5]]))
+    
+    (defpartial layout [& content]
+                (html5
+                  [:head
+                   [:title "http.async.client live"]
+                   (include-css "/css/reset.css")]
+                  [:body
+                   [:div#wrapper
+                    content]]))
+    
+    (defpage "/welcome" []
+      (layout [:p "Welcome to http.async.client live"]))
+    
+    (defpage "/json" []
+      (response/json {:status 0 :msg "simple, right?"}))
+    
+    (defpage "/json-q" {command :cmd}
+      (response/json {:status 0
+                      :command command
+                      :msg "now with query argument you passed"}))
+    
+    (server/load-views-ns 'hac-live.server)
+    
+    (defn -main [& m]
+      (let [port (Integer. (get (System/getenv) "PORT" "8080"))]
+        (server/start port {:mode :dev :ns 'hac-live.server})))
+  #+end_src
+
+
+* Simple GET
+
+  #+begin_src clojure :export code :tangle src/hac_live/core.clj
+    (ns hac-live.core
+      (:require [http.async.client :as http]
+                [cheshire.core :as json])
+      (:use [clojure.pprint :only [pprint]]))
+    
+    (comment
+    
+      ;; Create client
+      (def c (http/create-client))
+    
+      
+      ;; GET resource and inspect response
+      (-> (http/GET c "http://localhost:8080/welcome")
+          http/await
+          pprint)
+    
+      
+      ;; convenience functions
+      (let [resp (http/GET c "http://localhost:8080/welcome")]
+        (println "status")
+        (-> resp
+            http/status
+            pprint)
+    
+        (println "headers")
+        (-> resp
+            http/headers
+            pprint)
+    
+        (println "string")
+        (-> resp
+            http/string
+            pprint))
+    
+      
+      ;; reading json
+      (let [resp (http/GET c "http://localhost:8080/json")]
+        (-> resp
+            http/string
+            (json/parse-string true)
+            pprint))
+    
+      
+      ;; query parameters
+      (let [resp (http/GET c "http://localhost:8080/json-q"
+                           :query {:cmd "and control"})]
+        (-> resp
+            http/string
+            (json/parse-string true)
+            pprint))
+    
+      
+      ;; Close client
+      (http/close c)
+      )
+    
+  #+end_src

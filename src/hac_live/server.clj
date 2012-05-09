@@ -22,9 +22,9 @@
 (defpage "/json" []
   (response/json {:status 0 :msg "simple, right?"}))
 
-(defpage "/json-q" {command :cmd}
+(defpage "/json-q" {cmd :command}
   (response/json {:status 0
-                  :command command
+                  :command cmd
                   :msg "now with query argument you passed"}))
 
 (server/load-views-ns 'hac-live.server)
@@ -32,3 +32,5 @@
 (defn -main [& m]
   (let [port (Integer. (get (System/getenv) "PORT" "8080"))]
     (server/start port {:mode :dev :ns 'hac-live.server})))
+
+;;

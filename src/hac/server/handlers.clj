@@ -1,4 +1,4 @@
-(ns hac-live.server.handlers
+(ns hac.server.handlers
   (:use [ring.middleware.file :only [wrap-file]]
         [ring.middleware.file-info :only [wrap-file-info]]
         [ring.util.response :only [redirect]]

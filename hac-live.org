@@ -151,7 +151,7 @@
 * Request options
   There is more to issuing HTTP request than just URL.
   [[http://github/neotyk/http.async.client/][h.a.c]] now supports supports query, headers, body, cookies, proxy,
-  authorization, timeouts.
+  authentication, timeouts.
 
   For complete list of samples please refer to docs.
 
@@ -172,21 +172,22 @@
 * Towards async
   All samples so far where synchronous, let's do some asynchrony.
 
-  #+begin_src clojure :export code :tangle src/hac_live/core.clj
-    ;; Issue 20 request w/o waiting for each one
-    (let [reqs (for [n (range 20)] (http/GET c "http://localhost:8080/json-q"
-                                             :query {:command n}))]
-      ;; Issue 20 requests w/o waiting for response
-      (doall reqs)
-      (doseq [r reqs]
-        (-> r
-            http/string
-            (json/parse-string true)
-            :command
-            println)))
-    
-    ;;
-  #+end_src
+** TODO this is wrong example
+   #+begin_src clojure :export code :tangle src/hac_live/core.clj
+     ;; Issue 20 request w/o waiting for each one
+     (let [reqs (for [n (range 20)] (http/GET c "http://localhost:8080/json-q"
+                                              :query {:command n}))]
+       ;; Issue 20 requests w/o waiting for response
+       (doall reqs)
+       (doseq [r reqs]
+         (-> r
+             http/string
+             (json/parse-string true)
+             :command
+             println)))
+     
+     ;;
+   #+end_src
 
 
 * Callbacks

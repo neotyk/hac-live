@@ -1,5 +1,5 @@
-(ns hac-live.server
-  (:use [hac-live.server.handlers :only [demo-server]]
+(ns hac.server
+  (:use [hac.server.handlers :only [demo-server]]
         [aleph.http :only [start-http-server wrap-ring-handler]]))
 
 (defn -main [& m]

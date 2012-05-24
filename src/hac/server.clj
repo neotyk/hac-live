@@ -1,12 +1,14 @@
 (ns hac.server
   (:use [hac.server.handlers :only [demo-server]]
-        [aleph.http :only [start-http-server wrap-ring-handler]]))
+        [aleph.http :only [start-http-server
+                           wrap-ring-handler]]))
 
 (defn -main [& m]
   (let [port (or (when-let [p (System/getenv "PORT")]
                    (Integer/parseInt p))
                  8108)]
-    (start-http-server (wrap-ring-handler #'demo-server)
-                       {:port                     port
-                        :websocket                true
-                        :streaming-ring-requests? true})))
+    (start-http-server
+     (wrap-ring-handler #'demo-server)
+     {:port                     port
+      :websocket                true
+      :streaming-ring-requests? true})))

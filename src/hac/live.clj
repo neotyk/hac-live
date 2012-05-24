@@ -16,11 +16,10 @@
 
 
 
-
 (ns ^{:doc     "http.async.client live"
-      :author  "Hubert Iwaniuk"
-      :project "https://github.com/neotyk/http.async.client/"
-      :source  "https://github.com/neotyk/hac-live"}
+      :author  "Hubert Iwaniuk (@neotyk)"
+      :project "github.com/neotyk/http.async.client"
+      :source  "github.com/neotyk/hac-live"}
   hac.live
   
   (:require [http.async.client :as http]
@@ -29,7 +28,7 @@
             [cheshire.core :as json])
   (:use [clojure.pprint :only [pprint]]))
 
-;; create clients
+;; create client
 (def client (http/create-client))
 
 
@@ -93,8 +92,9 @@
                                         ; request 3
 ;; query parameters
 (let [resp (http/await
-            (http/GET client "http://localhost:8108/q.json"
-                      :query {:command "get things done"}))]
+            (http/GET
+             client "http://localhost:8108/q.json"
+             :query {:command "get things done"}))]
   (-> resp
       http/string
       (json/parse-string true)
@@ -114,9 +114,17 @@
 (let [resp (http/stream-seq
             client :get
             "http://localhost:8108/stream.json")]
-  (doseq [p (http/string resp)]
-    (print (json/parse-string p true)))
-  (println "\ndone"))
+  (let [s1 (http/string resp)
+        s2 (http/string resp)]
+
+    (future
+      (doseq [p s1]
+        (println "1:" (json/parse-string p true)))
+      (println "1: done"))
+    (future
+      (doseq [p s2]
+        (println "2:" (json/parse-string p true)))
+      (println "2: done"))))
 
 ;; this is backed by LinkedBlockingQueue
 ;; similar to c.c.seque, except no agents
@@ -166,10 +174,11 @@
                                         ; request 7
 ;; callbacks: result
 (http-r/execute-request
- client (http-r/prepare-request :get "http://localhost:8108/stream.json")
+ client (http-r/prepare-request
+         :get "http://localhost:8108/stream.json")
  :part (fn [resp part]
          (println :p part)
-         [:test :continue] ;; store arbitrary data in (:body resp)
+         [:test :continue] ;; store arbitrary data
          )
  :completed (fn [resp]
               (println :d (http/body resp))))

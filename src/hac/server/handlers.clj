@@ -1,7 +1,5 @@
 (ns hac.server.handlers
-  (:use [ring.middleware.file :only [wrap-file]]
-        [ring.middleware.file-info :only [wrap-file-info]]
-        [ring.util.response :only [redirect]]
+  (:use [ring.util.response :only [redirect]]
         [status-codes.compojure])
   (:require [compojure.route :as route]
             [compojure.handler :as handler]
@@ -43,6 +41,5 @@
                                :output  "got it done!"})})
     (compojure/GET "/stream.json" [] stream-handler)
     (compojure/GET "/socket" [] (aleph/wrap-aleph-handler websocket-handler))
-    (route/resources "/*")
     (route/not-found "This is not what you are looking for."))))
 

@@ -16,10 +16,11 @@
 
 
 
-(ns ^{:doc     "http.async.client live"
-      :author  "Hubert Iwaniuk (@neotyk)"
-      :project "github.com/neotyk/http.async.client"
-      :source  "github.com/neotyk/hac-live"}
+(ns
+ ^{:doc     "http.async.client live"
+   :author  "Hubert Iwaniuk (@neotyk)"
+   :project "github.com/neotyk/http.async.client"
+   :source  "github.com/neotyk/hac-live"}
   hac.live
 
   (:require [http.async.client :as http]
@@ -68,12 +69,12 @@
 
                                         ; request 2
 ;; follow redirects
-(def redirect-client (http/create-client
-                      :user-agent "EuroClojure/2012"
-                      :follow-redirects true))
+(def redirecting (http/create-client
+                  :user-agent "EuroClojure/2012"
+                  :follow-redirects true))
 
 (def resp2 (http/await
-            (http/GET redirect-client
+            (http/GET redirecting
                       "http://localhost:8108/")))
 
 ;; save to file
@@ -91,7 +92,7 @@
     pprint)
 
 ;; close
-(http/close redirect-client)
+(http/close redirecting)
 
 
                                         ; request 3
@@ -139,18 +140,18 @@
 
                                         ; request 5
 ;; stream: callback
-(let [resp (http/request-stream
-            client :get
-            "http://localhost:8108/stream.json"
-            ;; body part callback
-            (fn [_ part] ;; response map, body part
-              (-> part
-                  str
-                  (json/parse-string true)
-                  print)
-              ;; deliver part to body promise, only first time
-              ;; continue processing
-              [part :continue]))]
+(let [resp
+      (http/request-stream
+       client :get
+       "http://localhost:8108/stream.json"
+       ;; body part callback
+       (fn [_ part] ;; response map, body part
+         (-> part
+             str
+             (json/parse-string true)
+             print)
+         ;; result tuple
+         [part :continue]))]
   (http/await resp)
   (println "\ndone"))
 
@@ -231,7 +232,8 @@
 (let [counter (atom 0)]
   (http-r/execute-request
    client (http-r/prepare-request
-           :get "http://localhost:8108/stream.json")
+           :get
+           "http://localhost:8108/stream.json")
    :part (fn [resp part]
            (swap! counter inc)
            (println :p @counter)
@@ -251,7 +253,8 @@
      :part (fn [_ _]
              [n :continue]) ;; just store n in body
      :completed (fn [resp]
-                  (println (http/body resp))))))
+                  (println
+                   (str (http/body resp) " "))))))
 
 
                                         ; request 12
@@ -261,7 +264,8 @@
 
  :text (fn [soc msg]
          (println (str "< " msg))
-         (when (re-matches #"Echo WebSocket - .*" msg)
+         (when (re-matches #"Echo WebSocket - .*"
+                           msg)
            (future
              (doseq [msg (map str (range 7))]
                (http/send soc :text msg)

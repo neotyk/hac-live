@@ -1,18 +1,18 @@
 ;; ## live.clj -- http.async.client live demo
-
-; Copyright 2012 Hubert Iwaniuk
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-;   http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS,
-; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-; See the License for the specific language governing permissions and
-; limitations under the License.
+;;
+;; Copyright 2012 Hubert Iwaniuk
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;   http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
 
 
 
@@ -21,7 +21,7 @@
       :project "github.com/neotyk/http.async.client"
       :source  "github.com/neotyk/hac-live"}
   hac.live
-  
+
   (:require [http.async.client :as http]
             [http.async.client.request :as http-r]
             [clojure.java.io :as io]
@@ -29,17 +29,28 @@
   (:use [clojure.pprint :only [pprint]]))
 
 ;; create client
-(def client (http/create-client))
+(def client (http/create-client
+             :user-agent "EuroClojure/2012"))
+
+;; other client configuration options:
+;; - follow redirects,
+;; - http compression,
+;; - keep alive,
+;; - max connections per host and global,
+;; - timeouts,
+;; - proxy,
+;; - authentication (basic, digest),
+;; - ssl certificates.
 
 
                                         ; request 1
 ;; simple GET
-(def resp1 (http/await
-            (http/GET client
-                      "http://localhost:8108/")))
+(def resp1 (http/GET client
+                     "http://localhost:8108/"))
 
 ;; status line
 (-> resp1
+    http/await
     http/status
     pprint)
 
@@ -58,17 +69,8 @@
                                         ; request 2
 ;; follow redirects
 (def redirect-client (http/create-client
+                      :user-agent "EuroClojure/2012"
                       :follow-redirects true))
-
-;; other client configuration options:
-;; - user agent branding,
-;; - http compression,
-;; - keep alive,
-;; - max connections per host and global,
-;; - timeouts.
-;; - proxy.
-;; - authentication (basic, digest),
-;; - ssl certificates.
 
 (def resp2 (http/await
             (http/GET redirect-client
@@ -83,7 +85,10 @@
 (println (http/content-type resp2))
 
 ;; parse json
-(-> resp2 http/string (json/parse-string true) pprint)
+(-> resp2
+    http/string
+    (json/parse-string true)
+    pprint)
 
 ;; close
 (http/close redirect-client)
@@ -137,9 +142,10 @@
             "http://localhost:8108/stream.json"
             ;; body part callback
             (fn [_ part] ;; response map, body part
-              (print (-> part
-                         str
-                         (json/parse-string true)))
+              (-> part
+                  str
+                  (json/parse-string true)
+                  print)
               ;; deliver part to body promise, only first time
               ;; continue processing
               [part :continue]))]
@@ -158,7 +164,7 @@
            (if (realized? body)
              (do (.writeTo part @body)
                  [nil :continue])
-             [part :continue])) ;; store part in (:body resp)
+             [part :continue])) ;; store part
          )
  :completed (fn [resp]
               (println :d (http/string resp))))
@@ -201,20 +207,25 @@
 (http-r/execute-request
  client (http-r/prepare-request
          :get "http://localhost:8108/stream.json")
+ :status (fn [_ status]
+           (println :s (:code status))
+           [status :continue])
  :part (fn [resp part]
-         (let [counter (if (realized? (:body resp))
-                         (:body resp)
+         (let [body (:body resp)
+               counter (if (realized? body)
+                         @body
                          (atom 0))]
            (swap! counter inc)
-           (println :p (http/string part))
+           (println :p (str part))
            [counter :continue]))
  :completed (fn [resp]
-              (println :d @@(:body resp) ;atom within a promise
-                       )))
+              (println :d @@(:body resp)))
+ :error (fn [_ t]
+          (println :e t)))
 
 
                                         ; request 10
-;; callbacks: counting body parts
+;; callbacks: counting body parts 2
 (let [counter (atom 0)]
   (http-r/execute-request
    client (http-r/prepare-request
@@ -230,29 +241,32 @@
 
                                         ; request 11
 ;; a bit more requests executed
-(let [r (http-r/prepare-request :get "http://localhost:8108/stream.json")]
-  (dotimes [n 20]
+(let [r (http-r/prepare-request
+         :get "http://localhost:8108/stream.json")]
+  (dotimes [n 7]
     (http-r/execute-request
      client r
      :part (fn [_ _]
              [n :continue]) ;; just store n in body
      :completed (fn [resp]
-                  (println (str :d " " (http/body resp)))))))
+                  (println (http/body resp))))))
 
 
                                         ; request 12
-;; websocket support
+;; websocket support, work in progress
 (http/websocket
  client "ws://localhost:8108/socket"
 
  :text (fn [soc msg]
          (println (str "< " msg))
          (when (re-matches #"Echo WebSocket - .*" msg)
-               (future (doseq [msg (map str (range 7))]
-                         (http/send soc :text msg)
-                         (println (str "> " msg))))
-               (future (Thread/sleep 100)
-                       (http/close soc))))
+           (future
+             (doseq [msg (map str (range 7))]
+               (http/send soc :text msg)
+               (println (str "> " msg))))
+           (future
+             (Thread/sleep 100)
+             (http/close soc))))
 
  :open (fn [soc]
          (println "ws opened"))
@@ -279,4 +293,16 @@
 
 
 ;; close client
-(http/close c)
+(http/close client)
+
+
+
+;; Thanks for listening!
+
+;; Project is:
+;; http://github.com/neotyk/http.async.client
+
+;; whoami
+;; Hubert Iwaniuk @ Happy Hacking
+;; github/twitter/irc: neotyk
+

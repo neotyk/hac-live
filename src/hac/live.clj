@@ -123,10 +123,12 @@
         s2 (http/string resp)]
 
     (future
+      (println "1: first" (first s1))
       (doseq [p s1]
         (println "1:" (json/parse-string p true)))
       (println "1: done"))
     (future
+      (println "2: first" (first s2))
       (doseq [p s2]
         (println "2:" (json/parse-string p true)))
       (println "2: done"))))

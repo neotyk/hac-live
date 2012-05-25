@@ -240,6 +240,7 @@
            ;; delegate to default part callback
            (http-r/body-collect resp part))
    :completed (fn [resp]
+                (println :d (http/string resp))
                 (println :d @counter))))
 
 
